@@ -1,0 +1,17 @@
+{
+    "files.associations": {
+        "gpio.h": "c",
+        "esp_system.h": "c",
+        "task.h": "c",
+        "setting.h": "c",
+        "esp_log.h": "c",
+        "gpio_cont.h": "c",
+        "timer.h": "c",
+        "global_setting.h": "c",
+        "time.h": "c",
+        "ctime": "c",
+        "nvs_storage.h": "c",
+        "sdkconfig.h": "c"
+    },
+    "python.pythonPath": "/usr/bin/python"
+}
