@@ -9,6 +9,7 @@
 #include "nvs_storage.h"
 #include "timer_logic.h"
 #include "funcs.h"
+#include "global_setting.h"
 
 #define TAG "CMD_HANDLER"
 #define rsp_buffer_sz 10
@@ -64,16 +65,16 @@ void cmd_handler(uint16_t main, uint8_t len, uint8_t * vals)
         {
             ESP_LOGI(TAG, "start watering ");
             start_watering(
-                nvs_read_uint32("VALVE_CNT", 1),
-                nvs_read_uint32("WOKRING_UNIT", 1),
-                nvs_read_uint32("WATERING_TIME", 1), 
-                nvs_read_uint32("RESTING_TIME", 1),
-                nvs_read_uint32("TIME_CHECKING", 1),
-                nvs_read_uint32("OPEN_HOUR", 1),
-                nvs_read_uint32("OPEN_MINUTE", 1),
-                nvs_read_uint32("END_HOUR", 1),
-                nvs_read_uint32("END_MINUTE", 1),
-                nvs_read_uint32("ACTIVATION", 0XFFFF));
+                nvs_read_uint32("VALVE_CNT", gvalve_cnt),
+                nvs_read_uint32("WOKRING_UNIT", gworking_unit_time),
+                nvs_read_uint32("WATERING_TIME", gwatering_time), 
+                nvs_read_uint32("RESTING_TIME", gresting_time),
+                nvs_read_uint32("TIME_CHECKING", gtime_checking_time),
+                nvs_read_uint32("OPEN_HOUR", gopen_hour),
+                nvs_read_uint32("OPEN_MINUTE", gopen_minute),
+                nvs_read_uint32("END_HOUR", gend_hour),
+                nvs_read_uint32("END_MINUTE", gend_minute),
+                nvs_read_uint32("ACTIVATION", gvalue_activation));
             break;
         }
         case STOP:
@@ -86,17 +87,17 @@ void cmd_handler(uint16_t main, uint8_t len, uint8_t * vals)
             rsp_buffer[0] = (main >> 8) & 0xFF;
             rsp_buffer[1] = main & 0xFF ;
             rsp_buffer[2] = 14;
-            rsp_buffer[3] = nvs_read_uint32("VALVE_CNT", 4);
-            rsp_buffer[4] = nvs_read_uint32("USING_VALVE_CNT", 4);
-            rsp_buffer[5] = nvs_read_uint32("WOKRING_UNIT", 1);
-            rsp_buffer[6] = nvs_read_uint32("WATERING_TIME", 1);
-            rsp_buffer[7] = nvs_read_uint32("RESTING_TIME", 1);
-            rsp_buffer[8] = nvs_read_uint32("TIME_CHECKING", 1);
-            rsp_buffer[9] = nvs_read_uint32("OPEN_HOUR", 1);
-            rsp_buffer[10] = nvs_read_uint32("OPEN_MINUTE", 1);
-            rsp_buffer[11] = nvs_read_uint32("END_HOUR", 1);
-            rsp_buffer[12] = nvs_read_uint32("OPEN_MINUTE", 1);
-            rsp_buffer[13] = nvs_read_uint32("ACTIVATION", 0XFFFF);
+            rsp_buffer[3] = nvs_read_uint32("VALVE_CNT", gvalve_cnt);
+            rsp_buffer[4] = nvs_read_uint32("USING_VALVE_CNT", gworking_unit_time);
+            rsp_buffer[5] = nvs_read_uint32("WOKRING_UNIT", gwatering_time);
+            rsp_buffer[6] = nvs_read_uint32("WATERING_TIME", gresting_time);
+            rsp_buffer[7] = nvs_read_uint32("RESTING_TIME", gresting_time);
+            rsp_buffer[8] = nvs_read_uint32("TIME_CHECKING", gtime_checking_time);
+            rsp_buffer[9] = nvs_read_uint32("OPEN_HOUR", gopen_minute);
+            rsp_buffer[10] = nvs_read_uint32("OPEN_MINUTE", gopen_minute);
+            rsp_buffer[11] = nvs_read_uint32("END_HOUR", gend_hour);
+            rsp_buffer[12] = nvs_read_uint32("OPEN_MINUTE", gend_minute);
+            rsp_buffer[13] = nvs_read_uint32("ACTIVATION", gvalue_activation);
             break;
         }
         case TIMESTAMP:
@@ -131,6 +132,19 @@ void cmd_handler(uint16_t main, uint8_t len, uint8_t * vals)
             }
             break;
         }
+        case STATE:
+        {
+            memset(rsp_buffer, 0, sizeof(uint8_t) * rsp_buffer_sz);
+            rsp_buffer[0] = (main >> 8) & 0xFF;
+            rsp_buffer[1] = main & 0xFF ;
+            rsp_buffer[2] = 4;
+            rsp_buffer[3] = get_state();
+            break;
+        }
+        case RESET:
+            reset_setting();
+            break;
+            
         case TEST1:
         {
             testing_open_all();

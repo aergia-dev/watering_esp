@@ -11,9 +11,7 @@
 #include <inttypes.h>
 
 #define TAG "timer_logic.c"
-#define time_setting_unit 1
 
-uint64_t testing_count_val  =0;
 static bool IRAM_ATTR timer_group_isr_callback(void *args);
 
 // group0, timer0 => every minute timer for check day/night.
@@ -24,19 +22,10 @@ static bool IRAM_ATTR timer_group_isr_callback(void *args);
 #define WATERING_TIMER TIMER_GROUP_0
 #define STATE_TIMER TIMER_GROUP_1
 
-enum CURRENT_STATE {
-    NONE,
-    WATERING,
-    RESTING,
-    STOP,
-    NOT_AVAILABLE,
-};
-
 enum VALVE_STATE {
     CLOSE,
     OPEN,
 };
-
 typedef struct {
     int timer_group;
     int timer_idx;
@@ -55,6 +44,7 @@ typedef struct {
 
 static xQueueHandle s_timer_queue;
 
+//todo: merge with global state
 enum CURRENT_STATE state = NONE;
 int valve_idx = 0;
 
@@ -71,42 +61,13 @@ int _end_minute;
 bool _valve_activation[100];
 
 
-
-/*
- * A simple helper function to print the raw timer counter value
- * and the counter value converted to seconds
- */
-// static void inline print_timer_counter(uint64_t counter_value)
-// {
-//     printf("Counter: 0x%08x%08x\r\n", (uint32_t) (counter_value >> 32),
-//            (uint32_t) (counter_value));
-//     printf("Time   : %.8f s\r\n", (double) counter_value / TIMER_SCALE);
-// }
-
-// static int get_current_valve(int current)
-// {
-//     if(current < _valve_cnt)
-//         return valve_gpio[current];
-    
-//     return valve_gpio[0];
-// }
-
-
-
-
 static int next_valve_idx(int valve_idx)
 {
     int ret = valve_idx;
-   // ESP_LOGI(TAG,  "valve idx: %d", valve_idx);
-
-   // ESP_LOGI(TAG,  "valves: %d %d %d %d", _valve_activation[0], _valve_activation[1], _valve_activation[2], _valve_activation[3]);
-
-    for(int i = valve_idx; i < valve_idx + _valve_cnt +1; i++)
+   for(int i = valve_idx; i < valve_idx + _valve_cnt +1; i++)
     {
         valve_idx++;
         valve_idx = valve_idx % _valve_cnt;
-
-    //ESP_LOGI(TAG,  "valve idx: %d, state: %d", valve_idx, _valve_activation[valve_idx]);
 
         if(_valve_activation[valve_idx] == 1)
         {
@@ -200,7 +161,8 @@ void stop_watering()
 {
     disable_timer();
     turn_off_all_valve();
-    state = STOP;
+    state = STOP_WORKING;
+    set_state(STOP_WORKING);
 }
 
 int test_s_h;
@@ -217,11 +179,11 @@ bool is_watering_time()
     ESP_LOGI(TAG,  "watering time: %d:%d  ~ %d:%d", test_s_h, test_s_m, test_e_h, test_e_m);
     
     int current_min = now.tm_hour * 60 + now.tm_min;
-    // int start_min = _open_hour * 60 + _open_minute;
-    // int end_min = _end_hour * 60 + _end_minute;
+    int start_min = _open_hour * 60 + _open_minute;
+    int end_min = _end_hour * 60 + _end_minute;
 
-    int start_min = test_s_h * 60 + test_s_m;
-    int end_min = test_e_h * 60 + test_e_m;
+    // int start_min = test_s_h * 60 + test_s_m;
+    // int end_min = test_e_h * 60 + test_e_m;
 
 
     ESP_LOGI(TAG,  "start %d, current: %d, end: %d", start_min, current_min, end_min);
@@ -263,7 +225,7 @@ bool is_watering_time()
 enum CURRENT_STATE change_mode(enum CURRENT_STATE _state)
 {
     enum CURRENT_STATE new_state = _state; 
-     ESP_LOGI(TAG,  "change mode: %d", _state);
+    ESP_LOGI(TAG,  "change mode: %d", _state);
 
     if(is_watering_time())
     {
@@ -285,6 +247,7 @@ enum CURRENT_STATE change_mode(enum CURRENT_STATE _state)
         stop_watering();
     }
 
+    set_state(new_state);
     return new_state;
 }
 
@@ -303,34 +266,39 @@ void start_watering(
 {
     ESP_LOGI(TAG,  "start_Watering - logic");
    
-    //defence.. return err at first time. 
+    //TODO: return err at first time. 
     if(state == WATERING || state == RESTING)
     {
         disable_timer();
         turn_off_all_valve();
     }  
-
-    
     state = NONE;
-
-   //set file's global varis.
+    set_state(NONE);
+ ESP_LOGI(TAG,  "2");
+   
+    //set file's global varis.
     _valve_cnt = valve_cnt;
-    _working_unit_time = working_unit_time * time_setting_unit;
-    _watering_time = watering_time * time_setting_unit;
-    _resting_time = resting_time * time_setting_unit;
-    _time_checking_time = time_checking_time * time_setting_unit;
+    _working_unit_time = working_unit_time;
+    _watering_time = watering_time * working_unit_time;
+    _resting_time = resting_time * working_unit_time;
+    _time_checking_time = time_checking_time * working_unit_time;
     _open_hour = open_hour;
     _open_minute = open_minute;
     _end_hour = end_hour;
     _end_minute = end_minute;
-  
+
     for(int i = 0;i < valve_cnt; i++)
     {
         _valve_activation[i] = ((valve_activation >> i) & 1);
     }
-
+ESP_LOGI(TAG,  "3");
+  
     start_timer(TIMER_GROUP_0, TIMER_0, true, _time_checking_time);
+ ESP_LOGI(TAG,  "4");
+ 
     state = change_mode(state);
+    ESP_LOGI(TAG,  "5");
+ 
 }
 
 
@@ -350,8 +318,6 @@ static bool IRAM_ATTR timer_group_isr_callback(void *args)
         .timer_counter_value = timer_counter_value
     };
   
-        testing_count_val = timer_group_get_counter_value_in_isr(TIMER_GROUP_1, TIMER_0);
-
       //TIMER_GROUP_1, TIMER_0 watering/resting state timer. 
         if(!evt.info.auto_reload && evt.info.timer_group == TIMER_GROUP_1 && evt.info.timer_idx == TIMER_0)
         {
@@ -411,7 +377,6 @@ void timer_loop(void)
 
         if(evt.info.timer_group == TIMER_GROUP_1 && evt.info.timer_idx == TIMER_0)
         { 
-            ESP_LOGI(TAG,  "current testing_count_val: %llu" , testing_count_val);
             switch(state)
             {
                 case NONE:
@@ -421,6 +386,7 @@ void timer_loop(void)
                 {
                     ESP_LOGI(TAG,  "RESTING");
                     state = RESTING;
+                    set_state(state);
                     turn_off_all_valve();
                     timer_pause(TIMER_GROUP_1, TIMER_1);
                 break;
@@ -428,18 +394,16 @@ void timer_loop(void)
                 case RESTING:
                     ESP_LOGI(TAG,  "WATERING");
                     state = WATERING;
+                    set_state(state);
                     valve_idx = start_valve_idx();
                     set_valve(valve_idx, OPEN);
                     timer_start(TIMER_GROUP_1, TIMER_1);
                 break;
-                case STOP:
+                case STOP_WORKING:
                 break;
                 case NOT_AVAILABLE:
                 break;
             }
-            
-            
-           
         }
     }
 }
@@ -450,13 +414,18 @@ void testing_open_all()
      //defence.. return err at first time. 
     stop_watering();
 
-  ESP_LOGI(TAG,  "open all - %d", gvalve_cnt); 
-    for(int i = 0; i < gvalve_cnt; i++) 
-    {
-        ESP_LOGI(TAG,  "open valve - %d", valve_gpio[i]); 
-  
-        set_gpio(valve_gpio[i], OPEN);
-    }
+/*  int valve_cnt, 
+    int working_unit_time, 
+    int watering_time,
+    int resting_time,
+    int time_checking_time,
+    int open_hour,
+    int open_minute,
+    int end_hour,
+    int end_minute, 
+    int valve_activation
+    */
+    start_watering(4, 5, 1*4, 1, 30, 1, 1, 24, 59, 0xFF);
 }
 void testing_close_all()
 {
@@ -465,6 +434,5 @@ void testing_close_all()
 
     ESP_LOGI(TAG,  "close all - %d", gvalve_cnt); 
   
-    for(int i = 0; i < gvalve_cnt; i++)   
-       set_gpio(valve_gpio[i], CLOSE);
+    turn_off_all_valve();
 }

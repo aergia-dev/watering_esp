@@ -14,26 +14,46 @@ int gopen_hour;
 int gopen_minute;
 int gend_hour;
 int gend_minute;
+int gvalue_activation;
+enum CURRENT_STATE gstate = NONE;
 
 void global_setting_init()
 {
-    //  erase_all();
+    //erase_all();
 
     gvalve_cnt = nvs_read_uint32("VALVE_CNT", 4);
-    gworking_unit_time = nvs_read_uint32("WOKRING_UNIT", 1);
+    gworking_unit_time = nvs_read_uint32("WOKRING_UNIT", 60);
     gwatering_time = nvs_read_uint32("WATERING_TIME", 1);
     gresting_time = nvs_read_uint32("RESTING_TIME", 1);
     gtime_checking_time = nvs_read_uint32("TIME_CHECKING", 1);
 
-    gopen_hour = nvs_read_uint32("OPEN_HOUR", 0);
+    gopen_hour = nvs_read_uint32("OPEN_HOUR", 1);
     gopen_minute = nvs_read_uint32("OPEN_MINUTE", 0);
-    gend_hour = nvs_read_uint32("END_HOUR", 0);
-    gend_minute = nvs_read_uint32("END_MINUTE", 0);
+    gend_hour = nvs_read_uint32("END_HOUR", 12);
+    gend_minute = nvs_read_uint32("END_MINUTE", 59);
+    gvalue_activation = nvs_read_uint32("ACTIVATION", 0xFFFF);
 
     //valve_cnt's max is 4.
     for(int i = 0;i < gvalve_cnt; i++)
     {
-        int v = nvs_read_uint32("ACTIVATION", 0xFFFF);
-        valve_activation[i] = ((v >> i) & 1);
+        
+        valve_activation[i] = ((gvalue_activation >> i) & 1);
     }
+}
+
+void reset_setting()
+{
+    erase_all();
+    global_setting_init();
+
+}
+
+void set_state(enum CURRENT_STATE s)
+{
+    gstate = s;
+}
+
+enum CURRENT_STATE get_state()
+{
+    return gstate;
 }
