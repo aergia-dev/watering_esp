@@ -21,7 +21,7 @@ void app_main()
 	ble_start();
 	light_init();
     initGPIO();
-	// init_timer_logic();
+	init_timer_logic();
 	timer_loop();
 
 }

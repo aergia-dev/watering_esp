@@ -3,6 +3,7 @@
 #define __GLOBAL_SETTING
 
 #include <stdbool.h>
+#include <stdio.h>
 
 #define VALVE_CNT 4
 enum VALVE_GPIO {
@@ -17,13 +18,14 @@ enum CURRENT_STATE {
     WATERING,
     RESTING,
     STOP_WORKING,
+    OUT_OF_TIME,
     NOT_AVAILABLE,
 };
 
 // extern enum CURRENT_STATE state;
 extern const enum VALVE_GPIO valve_gpio[];
 extern bool valve_activation[];
-
+extern uint8_t gnotification[20];
 extern int gusing_valve_cnt;
 extern int gworking_unit_time;
 extern int gvalve_cnt;
@@ -35,8 +37,8 @@ extern int gopen_hour;
 extern int gopen_minute;
 extern int gend_hour;
 extern int gend_minute;
-extern bool hvalve_activation[];
-extern int gvalue_activation;
+extern bool gvalve_activation[];
+extern int gvalue_activated;
 void global_setting_init();
 void reset_setting();
 enum CURRENT_STATE get_state();

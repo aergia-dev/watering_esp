@@ -11,7 +11,9 @@
         "time.h": "c",
         "ctime": "c",
         "nvs_storage.h": "c",
-        "sdkconfig.h": "c"
+        "sdkconfig.h": "c",
+        "ble_cmd_handler.h": "c",
+        "stdio.h": "c"
     },
     "python.pythonPath": "/usr/bin/python"
 }

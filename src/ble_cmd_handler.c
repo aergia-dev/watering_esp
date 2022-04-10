@@ -27,38 +27,40 @@ void cmd_handler(uint16_t main, uint8_t len, uint8_t * vals)
 
     switch(main)
     {
-
         case WATERING_TIME:
         {
             int val = (vals[1] << 8) | vals[0];
             ESP_LOGI(TAG, "set watering time: %d - %d: %d ", vals[0], vals[1], val);
             nvs_write_uint32("WATERING_TIME", val);
+            global_setting_init();
             break;
         }
         case RESTING_TIME:
         {
             int val = (vals[1] << 8) | vals[0];
             nvs_write_uint32("RESTING_TIME", val);
+             global_setting_init();
             break;
         }
         case OPEN_TIME:
         {
 
-            extern int test_s_h;
-            extern int test_s_m;
-            extern int test_e_h;
-            extern int test_e_m;
+            // extern int test_s_h;
+            // extern int test_s_m;
+            // extern int test_e_h;
+            // extern int test_e_m;
 
-            test_s_h = vals[0];
-            test_s_m = vals[1];
-            test_e_h = vals[2];
-            test_e_m = vals[3];
+            // test_s_h = vals[0];
+            // test_s_m = vals[1];
+            // test_e_h = vals[2];
+            // test_e_m = vals[3];
             
             ESP_LOGI(TAG, "set open time: %d;%d - %d: %d ", vals[0], vals[1], vals[2], vals[3]);
             nvs_write_uint32("OPEN_HOUR", vals[0]);
             nvs_write_uint32("OPEN_MINUTE", vals[1]);
             nvs_write_uint32("END_HOUR", vals[2]);
             nvs_write_uint32("END_MINUTE", vals[3]);
+            global_setting_init();
         break;
         }
         case START:
@@ -74,7 +76,7 @@ void cmd_handler(uint16_t main, uint8_t len, uint8_t * vals)
                 nvs_read_uint32("OPEN_MINUTE", gopen_minute),
                 nvs_read_uint32("END_HOUR", gend_hour),
                 nvs_read_uint32("END_MINUTE", gend_minute),
-                nvs_read_uint32("ACTIVATION", gvalue_activation));
+                nvs_read_uint32("ACTIVATION", gvalue_activated));
             break;
         }
         case STOP:
@@ -97,7 +99,7 @@ void cmd_handler(uint16_t main, uint8_t len, uint8_t * vals)
             rsp_buffer[10] = nvs_read_uint32("OPEN_MINUTE", gopen_minute);
             rsp_buffer[11] = nvs_read_uint32("END_HOUR", gend_hour);
             rsp_buffer[12] = nvs_read_uint32("OPEN_MINUTE", gend_minute);
-            rsp_buffer[13] = nvs_read_uint32("ACTIVATION", gvalue_activation);
+            rsp_buffer[13] = nvs_read_uint32("ACTIVATION", gvalue_activated);
             break;
         }
         case TIMESTAMP:
@@ -125,6 +127,8 @@ void cmd_handler(uint16_t main, uint8_t len, uint8_t * vals)
                 else 
                     nvs_write_uint32(key, saved_state & ~(1 << idx));
             
+                 global_setting_init();
+                 
                 int a = ((state << idx) & 0xFFFF);
                 saved_state = nvs_read_uint32(key, 0xFFFF);
                 ESP_LOGI(TAG, "idx: %d, input: %d, result: %d", idx, a, saved_state);
